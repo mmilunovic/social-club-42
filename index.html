@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Social Club 42 — Real Friends Only</title>
+<meta name="description" content="A social network that takes us back to basics. Real friends. Real posts. No algorithms. No ads. No doomscrolling.">
+<meta name="theme-color" content="#1D1F27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>42</text></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body, #root { height: 100%; }
+  body { background: #1D1F27; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+</style>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.10/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-type="module">
+const { useState, useEffect } = React;
+
+// ============================================================
+// THEME CONFIGURATION
+// ============================================================
+const THEMES = {
+  retroPosthog: {
+    name: "Retro PostHog",
+    fonts: {
+      display: "'VT323', monospace",
+      body: "'Space Mono', monospace",
+      ui: "'Space Mono', monospace",
+    },
+    fontUrls: [
+      "https://fonts.googleapis.com/css2?family=VT323&family=Space+Mono:wght@400;700&display=swap",
+    ],
+    colors: {
+      bg: "#1D1F27", bgCard: "#2A2D38", bgCardHover: "#32364A", bgInput: "#1D1F27",
+      surface: "#353849", border: "#4A4E5A", borderAccent: "#F5A623",
+      text: "#E8E4DC", textMuted: "#8B8A88", textDim: "#5E5D5B",
+      accent: "#F5A623", accentAlt: "#FF6B6B", accentTeal: "#4ECDC4",
+      accentLavender: "#B8A9E8", accentPink: "#FF8FC4",
+      highlight: "#F5A623", danger: "#FF6B6B", success: "#4ECDC4", crt: true,
+    },
+  },
+  pastelRetro: {
+    name: "Pastel Retro",
+    fonts: {
+      display: "'Silkscreen', monospace",
+      body: "'IBM Plex Mono', monospace",
+      ui: "'IBM Plex Mono', monospace",
+    },
+    fontUrls: [
+      "https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Mono:wght@400;600&display=swap",
+    ],
+    colors: {
+      bg: "#F4F0E8", bgCard: "#FFFFFF", bgCardHover: "#FFF8F0", bgInput: "#F4F0E8",
+      surface: "#EDE9E0", border: "#D4CFC4", borderAccent: "#E8734A",
+      text: "#2D2926", textMuted: "#7A756E", textDim: "#B0AAA0",
+      accent: "#E8734A", accentAlt: "#D94F70", accentTeal: "#2A9D8F",
+      accentLavender: "#7B68AE", accentPink: "#E07BAA",
+      highlight: "#E8734A", danger: "#D94F70", success: "#2A9D8F", crt: false,
+    },
+  },
+};
+
+const ACTIVE_THEME_KEY = "retroPosthog";
+
+// ============================================================
+// PIXEL ART STICKER REACTIONS
+// ============================================================
+const makeSvgUri = (svg) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
+
+const STICKER_REACTIONS = [
+  {
+    id: "thisisfine",
+    src: makeSvgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#FFD54F" rx="2"/><rect x="3" y="6" width="2" height="2" fill="#333"/><rect x="8" y="6" width="2" height="2" fill="#333"/><rect x="4" y="10" width="5" height="1" fill="#333"/><rect x="1" y="1" width="2" height="3" fill="#FF6B35"/><rect x="3" y="0" width="2" height="3" fill="#FF9800"/><rect x="11" y="0" width="2" height="4" fill="#FF6B35"/><rect x="13" y="1" width="2" height="3" fill="#FF9800"/><rect x="0" y="3" width="2" height="2" fill="#FF9800"/><rect x="13" y="4" width="3" height="2" fill="#FF6B35"/></svg>`),
+  },
+  {
+    id: "partyparrot",
+    src: makeSvgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#4CAF50" rx="2"/><rect x="5" y="2" width="6" height="5" fill="#FF5722"/><rect x="4" y="4" width="2" height="3" fill="#FF9800"/><rect x="7" y="4" width="2" height="2" fill="#FFF"/><rect x="8" y="5" width="1" height="1" fill="#333"/><rect x="10" y="5" width="3" height="2" fill="#FFD54F"/><rect x="5" y="7" width="6" height="4" fill="#4FC3F7"/><rect x="3" y="8" width="3" height="2" fill="#81C784"/><rect x="10" y="8" width="3" height="2" fill="#81C784"/><rect x="6" y="11" width="2" height="3" fill="#FF9800"/><rect x="9" y="11" width="2" height="3" fill="#FF9800"/></svg>`),
+  },
+  {
+    id: "chefskiss",
+    src: makeSvgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#FFCCBC" rx="2"/><rect x="4" y="4" width="8" height="7" fill="#FFE0B2"/><rect x="5" y="5" width="2" height="2" fill="#333"/><rect x="9" y="5" width="2" height="2" fill="#333"/><rect x="6" y="9" width="4" height="2" fill="#FF8A80" rx="1"/><rect x="11" y="3" width="4" height="3" fill="#FFE0B2"/><rect x="12" y="1" width="3" height="2" fill="#FF8A80"/><rect x="13" y="0" width="2" height="1" fill="#FF5252"/><rect x="14" y="0" width="1" height="1" fill="#FF1744"/></svg>`),
+  },
+  {
+    id: "meowparty",
+    src: makeSvgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#FFF9C4" rx="2"/><rect x="2" y="1" width="3" height="4" fill="#FF4081"/><rect x="5" y="3" width="1" height="2" fill="#FF4081"/><rect x="10" y="3" width="1" height="2" fill="#7C4DFF"/><rect x="11" y="1" width="3" height="4" fill="#7C4DFF"/><rect x="3" y="5" width="10" height="7" fill="#FFB74D"/><rect x="4" y="7" width="2" height="2" fill="#333"/><rect x="10" y="7" width="2" height="2" fill="#333"/><rect x="7" y="9" width="2" height="1" fill="#FF8A80"/><rect x="6" y="10" width="1" height="1" fill="#333"/><rect x="9" y="10" width="1" height="1" fill="#333"/><rect x="5" y="10" width="1" height="2" fill="#FFB74D"/><rect x="10" y="10" width="1" height="2" fill="#FFB74D"/></svg>`),
+  },
+  {
+    id: "cooldoge",
+    src: makeSvgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><rect width="16" height="16" fill="#FFF8E1" rx="2"/><rect x="3" y="3" width="10" height="9" fill="#FFB74D"/><rect x="2" y="5" width="12" height="3" fill="#212121"/><rect x="3" y="5" width="4" height="3" fill="#2196F3" opacity="0.7"/><rect x="9" y="5" width="4" height="3" fill="#2196F3" opacity="0.7"/><rect x="5" y="10" width="6" height="2" fill="#FF8A65"/><rect x="6" y="10" width="4" height="1" fill="#FFF"/><rect x="2" y="2" width="3" height="3" fill="#FFB74D"/><rect x="11" y="2" width="3" height="3" fill="#FFB74D"/><rect x="6" y="8" width="1" height="1" fill="#333"/><rect x="9" y="8" width="1" height="1" fill="#333"/></svg>`),
+  },
+];
+
+const getStickerById = (id) => STICKER_REACTIONS.find(s => s.id === id);
+
+// ============================================================
+// MOCK DATA
+// ============================================================
+const MOCK_USERS = {
+  me: { id: "me", name: "You", handle: "@you", avatar: "Y" },
+  alice: { id: "alice", name: "Alice Chen", handle: "@alice", avatar: "A", connectedDate: "2024-08-14" },
+  bob: { id: "bob", name: "Bob Park", handle: "@bobpark", avatar: "B", connectedDate: "2024-09-02" },
+  carol: { id: "carol", name: "Carol Diaz", handle: "@caroldiaz", avatar: "C", connectedDate: "2024-10-21" },
+  dave: { id: "dave", name: "Dave Kim", handle: "@davekim", avatar: "D", connectedDate: "2025-01-07" },
+  eva: { id: "eva", name: "Eva Moreau", handle: "@evamoreau", avatar: "E", connectedDate: "2025-02-15" },
+};
+
+const formatDate = (dateStr) => {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
+const MOCK_POSTS = [
+  { id: 1, author: "alice", text: "Just found this incredible ramen spot in Shibuya. The tonkotsu broth is unreal — 14-hour slow cook. No photos, you just have to trust me.", time: "2h ago", reactions: { "thisisfine": 3, "chefskiss": 2 } },
+  { id: 2, author: "bob", text: "Finally finished reading Gödel, Escher, Bach after 6 months. My brain feels like it's been through a food processor.", time: "3h ago", reactions: { "cooldoge": 5, "partyparrot": 2 }, link: "https://en.wikipedia.org/wiki/GEB" },
+  { id: 3, author: "carol", text: "Morning run through the park. 5K in 23 minutes — new personal best!", time: "5h ago", reactions: { "partyparrot": 4, "meowparty": 3 }, hasImage: true },
+  { id: 4, author: "dave", text: "Hot take: tabs > spaces. I will not be taking questions.", time: "6h ago", reactions: { "thisisfine": 8, "cooldoge": 3 } },
+  { id: 5, author: "eva", text: "Made sourdough from a 3-year-old starter my grandmother gave me. It tastes like home.", time: "8h ago", reactions: { "chefskiss": 7, "meowparty": 2 }, hasImage: true },
+  { id: 6, author: "alice", text: "Does anyone else think pigeons are just government drones that ran out of funding? Look at them. They walk weird.", time: "9h ago", reactions: { "thisisfine": 12, "partyparrot": 4 } },
+  { id: 7, author: "bob", text: "Sharing this talk by Rich Hickey — 'Simple Made Easy'. Changed how I think about architecture.", time: "11h ago", reactions: { "cooldoge": 3, "chefskiss": 2 }, link: "https://example.com/talk" },
+  { id: 8, author: "carol", text: "Sunset from the office rooftop. Sometimes this city does not disappoint.", time: "12h ago", reactions: { "chefskiss": 5, "partyparrot": 2 }, hasImage: true },
+];
+
+// ============================================================
+// COMPONENTS
+// ============================================================
+
+const CRTOverlay = ({ enabled }) => enabled ? (
+  <div style={{
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    pointerEvents: "none", zIndex: 9999,
+    background: "repeating-linear-gradient(0deg, rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.06) 1px, transparent 1px, transparent 3px)",
+  }} />
+) : null;
+
+const Logo = ({ theme }) => {
+  const c = theme.colors;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{
+        width: 32, height: 32, border: `2px solid ${c.accent}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontFamily: theme.fonts.display, fontSize: 16, color: c.accent, background: c.bg,
+      }}>42</div>
+      <div>
+        <div style={{ fontFamily: theme.fonts.display, fontSize: 14, color: c.text, letterSpacing: 1, lineHeight: 1 }}>SOCIAL CLUB</div>
+        <div style={{ fontFamily: theme.fonts.body, fontSize: 8, color: c.textMuted, letterSpacing: 2, marginTop: 2 }}>REAL FRIENDS ONLY</div>
+      </div>
+    </div>
+  );
+};
+
+const Avatar = ({ letter, color, size = 36, theme }) => (
+  <div style={{
+    width: size, height: size, minWidth: size, border: `2px solid ${color}`,
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontFamily: theme.fonts.display, fontSize: size * 0.45, color, background: "transparent",
+  }}>{letter}</div>
+);
+
+const ACKEYS = ["accent", "accentAlt", "accentTeal", "accentLavender", "accentPink"];
+const getAvatarColor = (uid, c) => c[ACKEYS[uid.charCodeAt(0) % ACKEYS.length]];
+
+const StickerBadge = ({ stickerId, count, onClick, theme }) => {
+  const c = theme.colors;
+  const s = getStickerById(stickerId);
+  if (!s) return null;
+  return (
+    <button onClick={() => onClick(stickerId)} style={{
+      background: c.surface, border: `1px solid ${c.border}`, padding: "4px 8px",
+      cursor: "pointer", display: "flex", alignItems: "center", gap: 5, transition: "border-color 0.15s",
+    }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = c.accent}
+      onMouseLeave={e => e.currentTarget.style.borderColor = c.border}
+    >
+      <img src={s.src} alt="" style={{ width: 22, height: 22, imageRendering: "pixelated" }} />
+      <span style={{ fontSize: 11, color: c.textMuted, fontFamily: theme.fonts.ui }}>{count}</span>
+    </button>
+  );
+};
+
+const PostCard = ({ post, theme, onReact }) => {
+  const c = theme.colors;
+  const user = MOCK_USERS[post.author];
+  const [hovered, setHovered] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => { setHovered(false); setShowPicker(false); }}
+      style={{
+        background: hovered ? c.bgCardHover : c.bgCard,
+        border: `1px solid ${c.border}`, padding: 16, marginBottom: 8, transition: "all 0.15s ease",
+      }}
+    >
+      <div style={{ display: "flex", gap: 12 }}>
+        <Avatar letter={user.avatar} color={getAvatarColor(post.author, c)} theme={theme} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: theme.fonts.ui, fontSize: 13, fontWeight: 700, color: c.text }}>{user.name}</span>
+            <span style={{ fontFamily: theme.fonts.body, fontSize: 11, color: c.textMuted }}>{user.handle}</span>
+            <span style={{ fontFamily: theme.fonts.body, fontSize: 10, color: c.textDim, marginLeft: "auto" }}>{post.time}</span>
+          </div>
+          <div style={{ fontFamily: theme.fonts.body, fontSize: 13, lineHeight: 1.6, color: c.text, marginTop: 8 }}>{post.text}</div>
+          {post.hasImage && (
+            <div style={{
+              marginTop: 12, height: 160, border: `1px solid ${c.border}`,
+              background: `repeating-linear-gradient(45deg, ${c.surface}, ${c.surface} 10px, ${c.bgCard} 10px, ${c.bgCard} 20px)`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontFamily: theme.fonts.display, fontSize: 14, color: c.textMuted,
+            }}>[ IMAGE ]</div>
+          )}
+          {post.link && (
+            <div style={{
+              marginTop: 8, padding: "6px 10px", border: `1px dashed ${c.borderAccent}`,
+              fontFamily: theme.fonts.body, fontSize: 11, color: c.accent,
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>🔗 {post.link}</div>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+            {Object.entries(post.reactions).map(([id, count]) => (
+              <StickerBadge key={id} stickerId={id} count={count} onClick={(id) => onReact(post.id, id)} theme={theme} />
+            ))}
+            <button onClick={() => setShowPicker(!showPicker)} style={{
+              background: "transparent", border: `1px dashed ${c.border}`, padding: "4px 8px",
+              cursor: "pointer", fontSize: 12, color: c.textMuted, fontFamily: theme.fonts.body,
+            }}>+</button>
+          </div>
+          {showPicker && (
+            <div style={{
+              display: "flex", gap: 4, padding: 8, background: c.surface,
+              border: `1px solid ${c.border}`, marginTop: 6,
+            }}>
+              {STICKER_REACTIONS.map(s => (
+                <button key={s.id} onClick={() => { onReact(post.id, s.id); setShowPicker(false); }} style={{
+                  background: "transparent", border: "1px solid transparent", cursor: "pointer",
+                  padding: 6, transition: "border-color 0.1s", display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = c.accent}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = "transparent"}
+                >
+                  <img src={s.src} alt="" style={{ width: 30, height: 30, imageRendering: "pixelated" }} />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const NavItem = ({ icon, label, active, onClick, theme }) => {
+  const c = theme.colors;
+  return (
+    <button onClick={onClick} style={{
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+      background: "transparent", border: "none", cursor: "pointer",
+      padding: "8px 12px", color: active ? c.accent : c.textMuted, transition: "color 0.15s", flex: 1,
+    }}>
+      <span style={{ fontSize: 20 }}>{icon}</span>
+      <span style={{ fontFamily: theme.fonts.ui, fontSize: 9, letterSpacing: 1, textTransform: "uppercase" }}>{label}</span>
+    </button>
+  );
+};
+
+// ============================================================
+// SCREENS
+// ============================================================
+
+const FeedScreen = ({ theme, posts, onReact }) => {
+  const c = theme.colors;
+  const n = posts.length;
+  return (
+    <div style={{ padding: "0 12px 80px" }}>
+      <div style={{ padding: "12px 0", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: `1px solid ${c.border}`, marginBottom: 12 }}>
+        <span style={{ fontFamily: theme.fonts.display, fontSize: 14, color: c.text }}>TODAY'S FEED</span>
+        <span style={{ fontFamily: theme.fonts.display, fontSize: 14, color: n >= 42 ? c.danger : c.accent }}>{n}/42</span>
+      </div>
+      <div style={{ width: "100%", height: 4, background: c.surface, marginBottom: 16, overflow: "hidden" }}>
+        <div style={{ width: `${(n / 42) * 100}%`, height: "100%", background: n >= 42 ? c.danger : c.accent, transition: "width 0.3s ease" }} />
+      </div>
+      {posts.map(p => <PostCard key={p.id} post={p} theme={theme} onReact={onReact} />)}
+      {n < 42 && (
+        <div style={{ textAlign: "center", padding: 24, fontFamily: theme.fonts.body, fontSize: 12, color: c.textDim, borderTop: `1px dashed ${c.border}`, marginTop: 8 }}>
+          — You've seen everything for now. Check back later. —
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ConnectScreen = ({ theme }) => {
+  const c = theme.colors;
+  const [state, setState] = useState("idle");
+  return (
+    <div style={{ padding: "40px 24px 80px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+      <div style={{ fontFamily: theme.fonts.display, fontSize: 24, color: c.text, marginBottom: 8 }}>CONNECT</div>
+      <div style={{ fontFamily: theme.fonts.body, fontSize: 12, color: c.textMuted, marginBottom: 40, maxWidth: 260, lineHeight: 1.6 }}>
+        Tap phones with a friend to connect. No follows. No requests. Just a tap.
+      </div>
+      <button onClick={() => { setState("scanning"); setTimeout(() => setState("success"), 2000); }} style={{
+        width: 160, height: 160,
+        border: `3px solid ${state === "success" ? c.success : state === "scanning" ? c.accent : c.border}`,
+        background: state === "scanning" ? c.surface : "transparent",
+        cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+        transition: "all 0.3s ease", animation: state === "scanning" ? "pulse 1.5s infinite" : "none",
+      }}>
+        <span style={{ fontSize: 40 }}>{state === "success" ? "✓" : state === "scanning" ? "📡" : "📱"}</span>
+        <span style={{ fontFamily: theme.fonts.display, fontSize: 14, color: state === "success" ? c.success : state === "scanning" ? c.accent : c.text }}>
+          {state === "success" ? "CONNECTED!" : state === "scanning" ? "SCANNING..." : "TAP TO START"}
+        </span>
+      </button>
+      {state === "success" && (
+        <div style={{ marginTop: 32, padding: 16, border: `1px solid ${c.success}`, background: c.bgCard, display: "flex", alignItems: "center", gap: 12 }}>
+          <Avatar letter="N" color={c.success} size={40} theme={theme} />
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontFamily: theme.fonts.ui, fontSize: 13, fontWeight: 700, color: c.text }}>New Friend</div>
+            <div style={{ fontFamily: theme.fonts.body, fontSize: 11, color: c.textMuted }}>@newfriend · Just now</div>
+          </div>
+        </div>
+      )}
+      <div style={{ marginTop: 40, padding: "12px 16px", border: `1px dashed ${c.border}`, fontFamily: theme.fonts.body, fontSize: 11, color: c.textDim, lineHeight: 1.6, maxWidth: 280 }}>
+        💡 NFC not working? Ask your friend to show their QR code as a fallback. It expires in 10 seconds.
+      </div>
+      {state !== "idle" && (
+        <button onClick={() => setState("idle")} style={{ marginTop: 16, background: "transparent", border: `1px solid ${c.border}`, padding: "8px 20px", fontFamily: theme.fonts.ui, fontSize: 11, color: c.textMuted, cursor: "pointer" }}>RESET</button>
+      )}
+    </div>
+  );
+};
+
+const NewPostScreen = ({ theme }) => {
+  const c = theme.colors;
+  const [text, setText] = useState("");
+  const [posted, setPosted] = useState(false);
+  return (
+    <div style={{ padding: "20px 12px 80px" }}>
+      <div style={{ fontFamily: theme.fonts.display, fontSize: 18, color: c.text, marginBottom: 16 }}>NEW POST</div>
+      {posted ? (
+        <div style={{ padding: 32, border: `1px solid ${c.success}`, textAlign: "center" }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>✓</div>
+          <div style={{ fontFamily: theme.fonts.display, fontSize: 16, color: c.success }}>POSTED</div>
+          <div style={{ fontFamily: theme.fonts.body, fontSize: 12, color: c.textMuted, marginTop: 8 }}>Your friends will see this in their feed.</div>
+          <button onClick={() => { setPosted(false); setText(""); }} style={{ marginTop: 16, background: "transparent", border: `1px solid ${c.border}`, padding: "8px 20px", fontFamily: theme.fonts.ui, fontSize: 11, color: c.textMuted, cursor: "pointer" }}>WRITE ANOTHER</button>
+        </div>
+      ) : (
+        <>
+          <textarea value={text} onChange={e => setText(e.target.value)} placeholder="What's on your mind?" style={{
+            width: "100%", minHeight: 140, background: c.bgInput, border: `1px solid ${c.border}`,
+            padding: 12, fontFamily: theme.fonts.body, fontSize: 13, color: c.text,
+            resize: "vertical", outline: "none", lineHeight: 1.6, boxSizing: "border-box",
+          }}
+            onFocus={e => e.target.style.borderColor = c.accent}
+            onBlur={e => e.target.style.borderColor = c.border}
+          />
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            {["📷 Photo", "🎥 Video", "🔗 Link"].map(o => (
+              <button key={o} style={{ background: "transparent", border: `1px dashed ${c.border}`, padding: "6px 12px", fontFamily: theme.fonts.ui, fontSize: 11, color: c.textMuted, cursor: "pointer" }}>{o}</button>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 16 }}>
+            <span style={{ fontFamily: theme.fonts.body, fontSize: 11, color: text.length > 500 ? c.danger : c.textDim }}>{text.length}/500</span>
+            <button onClick={() => text.trim() && setPosted(true)} style={{
+              background: text.trim() ? c.accent : c.surface, border: "none", padding: "10px 28px",
+              fontFamily: theme.fonts.display, fontSize: 14, color: text.trim() ? c.bg : c.textDim,
+              cursor: text.trim() ? "pointer" : "default", letterSpacing: 1, transition: "all 0.15s",
+            }}>POST</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+const FriendsScreen = ({ theme }) => {
+  const c = theme.colors;
+  const friends = Object.values(MOCK_USERS).filter(u => u.id !== "me");
+  const fof = [
+    { name: "Faye Lin", handle: "@fayelin", avatar: "F", mutual: "Alice Chen" },
+    { name: "George Nakamura", handle: "@gnakamura", avatar: "G", mutual: "Bob Park" },
+    { name: "Hannah Olsen", handle: "@holsen", avatar: "H", mutual: "Carol Diaz" },
+  ];
+  return (
+    <div style={{ padding: "20px 12px 80px" }}>
+      <div style={{ fontFamily: theme.fonts.display, fontSize: 18, color: c.text, marginBottom: 4 }}>YOUR FRIENDS</div>
+      <div style={{ fontFamily: theme.fonts.body, fontSize: 11, color: c.textMuted, marginBottom: 16 }}>{friends.length} connections — all made in person</div>
+      {friends.map(f => (
+        <div key={f.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, border: `1px solid ${c.border}`, marginBottom: 6, background: c.bgCard }}>
+          <Avatar letter={f.avatar} color={getAvatarColor(f.id, c)} theme={theme} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: theme.fonts.ui, fontSize: 13, fontWeight: 700, color: c.text }}>{f.name}</div>
+            <div style={{ fontFamily: theme.fonts.body, fontSize: 11, color: c.textMuted }}>{f.handle}</div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontFamily: theme.fonts.body, fontSize: 9, color: c.textDim, letterSpacing: 0.5 }}>TAPPED</div>
+            <div style={{ fontFamily: theme.fonts.ui, fontSize: 10, color: c.textMuted, marginTop: 1 }}>{formatDate(f.connectedDate)}</div>
+          </div>
+        </div>
+      ))}
+      <div style={{ fontFamily: theme.fonts.display, fontSize: 14, color: c.textMuted, marginTop: 28, marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ color: c.textDim }}>👥</span> FRIENDS OF FRIENDS
+      </div>
+      <div style={{ fontFamily: theme.fonts.body, fontSize: 11, color: c.textDim, marginBottom: 12, lineHeight: 1.5 }}>
+        You can see them, but can't connect here. Ask your mutual friend to introduce you IRL.
+      </div>
+      {fof.map(p => (
+        <div key={p.handle} style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, border: `1px dashed ${c.border}`, marginBottom: 6, opacity: 0.65 }}>
+          <Avatar letter={p.avatar} color={c.textDim} size={32} theme={theme} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: theme.fonts.ui, fontSize: 12, color: c.text }}>{p.name}</div>
+            <div style={{ fontFamily: theme.fonts.body, fontSize: 10, color: c.textDim }}>via {p.mutual}</div>
+          </div>
+          <span style={{ fontFamily: theme.fonts.body, fontSize: 9, color: c.textDim, border: `1px solid ${c.border}`, padding: "2px 6px" }}>VIEW ONLY</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ============================================================
+// PROFILE SCREEN
+// ============================================================
+const AVG_DAILY_SM_MIN = 143;
+
+const ProfileScreen = ({ theme, themeKey, onThemeChange, allThemes }) => {
+  const c = theme.colors;
+  const user = MOCK_USERS.me;
+  const todayMin = 12, totalDays = 127, avgMin = 14;
+  const savedToday = AVG_DAILY_SM_MIN - todayMin;
+  const totalH = Math.round((AVG_DAILY_SM_MIN - avgMin) * totalDays / 60);
+
+  const timeEq = [
+    { emoji: "📖", thing: "Reading a 200-page book", hours: 5 },
+    { emoji: "🍳", thing: "Mastering 10 new recipes", hours: 15 },
+    { emoji: "🎸", thing: "Learning basic guitar chords", hours: 20 },
+    { emoji: "🏃", thing: "Training for a 5K", hours: 30 },
+    { emoji: "🧘", thing: "A full meditation retreat", hours: 40 },
+    { emoji: "🎨", thing: "Completing a painting course", hours: 50 },
+    { emoji: "✈️", thing: "Planning & taking a solo trip", hours: 60 },
+    { emoji: "💻", thing: "Building a side project", hours: 100 },
+    { emoji: "🗣️", thing: "Basic conversational Spanish", hours: 150 },
+    { emoji: "🧠", thing: "Reading 50 books", hours: 250 },
+  ];
+  const unlocked = timeEq.filter(e => totalH >= e.hours);
+  const next = timeEq.find(e => totalH < e.hours);
+
+  const manifesto = [
+    { icon: "🔒", title: "Privacy First", desc: "No tracking. No data harvesting. No profiling. Your posts stay between friends." },
+    { icon: "🚫", title: "Zero Ads Forever", desc: "No sponsored posts. No promoted content. No brands in your feed. Ever." },
+    { icon: "⏱️", title: "No Infinite Scroll", desc: "42 posts/day. Read them, enjoy them, then go live your life." },
+    { icon: "🤖", title: "No Algorithms, No AI Slop", desc: "Chronological feed only. No AI curating your reality, no generated content. Just real posts from real people." },
+    { icon: "🤝", title: "Real People Only", desc: "Every connection made face-to-face. No bots, influencers, or strangers." },
+    { icon: "⏳", title: "Get Your Time Back", desc: "Average user spends 2h23m/day on social media. Our average is 14 minutes." },
+  ];
+
+  return (
+    <div style={{ padding: "20px 12px 80px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, padding: 20, border: `1px solid ${c.border}`, background: c.bgCard, marginBottom: 20 }}>
+        <Avatar letter={user.avatar} color={c.accent} size={56} theme={theme} />
+        <div>
+          <div style={{ fontFamily: theme.fonts.display, fontSize: 20, color: c.text }}>{user.name}</div>
+          <div style={{ fontFamily: theme.fonts.body, fontSize: 12, color: c.textMuted }}>{user.handle}</div>
+          <div style={{ fontFamily: theme.fonts.body, fontSize: 11, color: c.textDim, marginTop: 4 }}>5 friends · Member since 2024</div>
+        </div>
+      </div>
+
+      <div style={{ border: `2px solid ${c.success}`, padding: 20, marginBottom: 20, textAlign: "center", background: c.bgCard }}>
+        <div style={{ fontFamily: theme.fonts.body, fontSize: 10, color: c.success, letterSpacing: 2, textTransform: "uppercase", marginBottom: 8 }}>YOUR TIME RECLAIMED</div>
+        <div style={{ fontFamily: theme.fonts.display, fontSize: 48, color: c.success, lineHeight: 1 }}>{totalH}H</div>
+        <div style={{ fontFamily: theme.fonts.body, fontSize: 11, color: c.textMuted, marginTop: 6 }}>saved since joining vs avg social media usage</div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 16, borderTop: `1px solid ${c.border}`, paddingTop: 14 }}>
+          <div>
+            <div style={{ fontFamily: theme.fonts.display, fontSize: 20, color: c.accent }}>{todayMin}M</div>
+            <div style={{ fontFamily: theme.fonts.body, fontSize: 9, color: c.textDim, letterSpacing: 1 }}>TODAY</div>
+          </div>
+          <div style={{ width: 1, background: c.border }} />
+          <div>
+            <div style={{ fontFamily: theme.fonts.display, fontSize: 20, color: c.success }}>−{savedToday}M</div>
+            <div style={{ fontFamily: theme.fonts.body, fontSize: 9, color: c.textDim, letterSpacing: 1 }}>VS AVG</div>
+          </div>
+          <div style={{ width: 1, background: c.border }} />
+          <div>
+            <div style={{ fontFamily: theme.fonts.display, fontSize: 20, color: c.text }}>{avgMin}M</div>
+            <div style={{ fontFamily: theme.fonts.body, fontSize: 9, color: c.textDim, letterSpacing: 1 }}>AVG/DAY</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ fontFamily: theme.fonts.display, fontSize: 14, color: c.text, marginBottom: 4 }}>WHAT {totalH} HOURS GETS YOU</div>
+      <div style={{ fontFamily: theme.fonts.body, fontSize: 11, color: c.textDim, marginBottom: 12, lineHeight: 1.5 }}>Time you saved instead of doomscrolling</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
+        {unlocked.map(eq => (
+          <div key={eq.thing} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: `1px solid ${c.border}`, background: c.bgCard }}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>{eq.emoji}</span>
+            <div style={{ flex: 1, fontFamily: theme.fonts.body, fontSize: 12, color: c.text, lineHeight: 1.4 }}>{eq.thing}</div>
+            <span style={{ fontFamily: theme.fonts.display, fontSize: 14, color: c.success, flexShrink: 0 }}>{eq.hours}h ✓</span>
+          </div>
+        ))}
+      </div>
+      {next && (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", border: `1px dashed ${c.accent}`, marginBottom: 4 }}>
+          <span style={{ fontSize: 18, flexShrink: 0 }}>{next.emoji}</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: theme.fonts.body, fontSize: 12, color: c.textMuted, lineHeight: 1.4 }}>{next.thing}</div>
+            <div style={{ width: "100%", height: 4, background: c.surface, marginTop: 4 }}>
+              <div style={{ width: `${(totalH / next.hours) * 100}%`, height: "100%", background: c.accent }} />
+            </div>
+          </div>
+          <span style={{ fontFamily: theme.fonts.display, fontSize: 12, color: c.accent, flexShrink: 0 }}>{next.hours - totalH}h to go</span>
+        </div>
+      )}
+      <div style={{ marginBottom: 24 }} />
+
+      <div style={{ fontFamily: theme.fonts.display, fontSize: 14, color: c.text, marginBottom: 12 }}>STATS</div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 24 }}>
+        {[
+          { label: "Posts Today", value: "3" }, { label: "Posts Seen", value: "8/42" },
+          { label: "Reactions Given", value: "14" }, { label: "Days Active", value: "127" },
+          { label: "Time Today", value: `${todayMin}m` }, { label: "Avg Daily", value: `${avgMin}m` },
+        ].map(s => (
+          <div key={s.label} style={{ padding: 14, border: `1px solid ${c.border}`, background: c.bgCard, textAlign: "center" }}>
+            <div style={{ fontFamily: theme.fonts.display, fontSize: 22, color: c.accent }}>{s.value}</div>
+            <div style={{ fontFamily: theme.fonts.body, fontSize: 9, color: c.textMuted, marginTop: 4, textTransform: "uppercase", letterSpacing: 1 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ fontFamily: theme.fonts.display, fontSize: 14, color: c.text, marginBottom: 12 }}>THEME</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 24 }}>
+        {Object.entries(allThemes).map(([key, t]) => (
+          <button key={key} onClick={() => onThemeChange(key)} style={{
+            display: "flex", alignItems: "center", gap: 12, padding: 12,
+            background: themeKey === key ? c.surface : "transparent",
+            border: `1px solid ${themeKey === key ? c.accent : c.border}`, cursor: "pointer", textAlign: "left",
+          }}>
+            <div style={{ display: "flex", gap: 4 }}>
+              {[t.colors.bg, t.colors.accent, t.colors.accentAlt, t.colors.accentTeal].map((col, i) => (
+                <div key={i} style={{ width: 16, height: 16, background: col, border: `1px solid ${c.border}` }} />
+              ))}
+            </div>
+            <span style={{ fontFamily: theme.fonts.ui, fontSize: 12, color: themeKey === key ? c.accent : c.text }}>{t.name}</span>
+          </button>
+        ))}
+      </div>
+
+      <div style={{ fontFamily: theme.fonts.display, fontSize: 14, color: c.text, marginBottom: 12 }}>WHY THIS EXISTS</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {manifesto.map(m => (
+          <div key={m.title} style={{ display: "flex", gap: 12, padding: 12, border: `1px solid ${c.border}`, background: c.bgCard }}>
+            <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{m.icon}</span>
+            <div>
+              <div style={{ fontFamily: theme.fonts.ui, fontSize: 12, fontWeight: 700, color: c.text, marginBottom: 3 }}>{m.title}</div>
+              <div style={{ fontFamily: theme.fonts.body, fontSize: 11, color: c.textMuted, lineHeight: 1.5 }}>{m.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
+// MAIN APP
+// ============================================================
+function SocialClub42() {
+  const [themeKey, setThemeKey] = useState(ACTIVE_THEME_KEY);
+  const [screen, setScreen] = useState("feed");
+  const [posts, setPosts] = useState(MOCK_POSTS);
+  const theme = THEMES[themeKey];
+  const c = theme.colors;
+
+  useEffect(() => {
+    theme.fontUrls.forEach(url => {
+      if (!document.querySelector(`link[href="${url}"]`)) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet"; link.href = url;
+        document.head.appendChild(link);
+      }
+    });
+  }, [themeKey]);
+
+  const handleReact = (postId, stickerId) => {
+    setPosts(prev => prev.map(p => {
+      if (p.id !== postId) return p;
+      const reactions = { ...p.reactions };
+      reactions[stickerId] = (reactions[stickerId] || 0) + 1;
+      return { ...p, reactions };
+    }));
+  };
+
+  const screens = {
+    feed: <FeedScreen theme={theme} posts={posts} onReact={handleReact} />,
+    connect: <ConnectScreen theme={theme} />,
+    post: <NewPostScreen theme={theme} />,
+    friends: <FriendsScreen theme={theme} />,
+    profile: <ProfileScreen theme={theme} themeKey={themeKey} onThemeChange={setThemeKey} allThemes={THEMES} />,
+  };
+
+  return (
+    <div style={{
+      maxWidth: 420, margin: "0 auto", minHeight: "100vh",
+      background: c.bg, position: "relative", fontFamily: theme.fonts.body, overflow: "hidden",
+    }}>
+      <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        * { box-sizing: border-box; }
+        textarea::placeholder { color: ${c.textDim}; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: ${c.bg}; }
+        ::-webkit-scrollbar-thumb { background: ${c.border}; }
+      `}</style>
+      <CRTOverlay enabled={c.crt} />
+      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${c.border}`, background: c.bg, position: "sticky", top: 0, zIndex: 100 }}>
+        <Logo theme={theme} />
+      </div>
+      <div style={{ overflowY: "auto" }}>{screens[screen]}</div>
+      <div style={{
+        position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
+        width: "100%", maxWidth: 420, background: c.bg,
+        borderTop: `1px solid ${c.border}`, display: "flex", padding: "4px 0 8px", zIndex: 100,
+      }}>
+        {[
+          { icon: "📰", label: "Feed", key: "feed" },
+          { icon: "👥", label: "Friends", key: "friends" },
+          { icon: "📡", label: "Connect", key: "connect" },
+          { icon: "✏️", label: "Post", key: "post" },
+          { icon: "⚙️", label: "Profile", key: "profile" },
+        ].map(n => (
+          <NavItem key={n.key} icon={n.icon} label={n.label} active={screen === n.key} onClick={() => setScreen(n.key)} theme={theme} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<SocialClub42 />);
+</script>
+</body>
+</html>
